@@ -18,7 +18,9 @@ make linux || make windows || make all
 
 ## Usage
 ```
-cat domains.txt | gocrtsh
+cat domains.txt | gocrtsh (--wildcards)
+
+--wildcards = print found wildcard (*.domain.tld) certificates (default: false)
 ```
 
 ## copycat

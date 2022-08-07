@@ -5,10 +5,12 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,7 +36,7 @@ func contains(list []string, query string) bool {
 	return false
 }
 
-func worker(wg *sync.WaitGroup, jobs <-chan string) {
+func worker(wg *sync.WaitGroup, jobs <-chan string, printwildcards bool) {
 
 	defer wg.Done()
 
@@ -67,19 +69,35 @@ func worker(wg *sync.WaitGroup, jobs <-chan string) {
 		for _, cert := range jsondata {
 			// only print if not already printed
 			if !contains(printed, cert.NameValue) {
-				fmt.Println(cert.NameValue)
-				printed = append(printed, cert.NameValue)
+				// if wildcard cert is found print only if flag --wildcards is supplied
+				if strings.HasPrefix(cert.NameValue, "*.") {
+					if printwildcards {
+						fmt.Printf("\033[33m%s\033[0m\n", cert.NameValue)
+						printed = append(printed, cert.NameValue)
+					} else {
+						printed = append(printed, cert.NameValue)
+					}
+				} else {
+					fmt.Println(cert.NameValue)
+					printed = append(printed, cert.NameValue)
+				}
+
 			}
 
 		}
 
 		// sleep so that we don't dos crt.sh
 		// ADJUST THIS VALUE AT YOUR OWN RISK OF GETTING WAF'D
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 500)
 	}
 }
 
 func main() {
+
+	var printwildcards bool
+
+	flag.BoolVar(&printwildcards, "wildcards", false, "Print found wildcard certificates")
+	flag.Parse()
 
 	// check that STDIN != empty
 	stdinstat, err := os.Stdin.Stat()
@@ -98,7 +116,7 @@ func main() {
 	// channel for the jobs
 	chanJobs := make(chan string)
 
-	go worker(wg, chanJobs)
+	go worker(wg, chanJobs, printwildcards)
 	wg.Add(1)
 
 	stdin := bufio.NewScanner(os.Stdin)
