@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/go
-# Edit at https://www.toptal.com/developers/gitignore?templates=go
+# Created by https://www.toptal.com/developers/gitignore/api/go,visualstudiocode
+# Edit at https://www.toptal.com/developers/gitignore?templates=go,visualstudiocode
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
@@ -24,14 +24,25 @@
 # Go workspace file
 go.work
 
-### Go Patch ###
-/vendor/
-/Godeps/
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
 
-# End of https://www.toptal.com/developers/gitignore/api/go
+# Local History for Visual Studio Code
+.history/
 
-# my testing files
-*.txt
-# builds
-gocrtsh.exe
-gocrtsh
+# Built Visual Studio Code Extensions
+*.vsix
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
+.ionide
+
+# End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode
+
+builds/

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"gitlab.com/lu-ka/gocrtsh/randomUserAgent"
 )
 
 // slices of the results
@@ -36,31 +37,43 @@ func contains(list []string, query string) bool {
 	return false
 }
 
+// cheap error handling
+func iserror(err error, job string) {
+	if err != nil {
+		fmt.Printf("[%s] ERROR: %e, exiting.\n", job, err)
+		os.Exit(1)
+	}
+}
+
 func worker(wg *sync.WaitGroup, jobs <-chan string, printwildcards bool) {
 
 	defer wg.Done()
+
+	client := &http.Client{}
 
 	for job := range jobs {
 
 		// for the results
 		var jsondata results
 
+		request, err := http.NewRequest("GET", "https://crt.sh/?output=json&CN="+job, nil)
+		iserror(err, job)
+
+		// get a random User Agent
+		request.Header.Set("User-Agent", randomUserAgent.Desktop())
+
 		// query the site
-		response, err := http.Get("https://crt.sh/?output=json&CN=" + job)
-		if err != nil {
-			log.Fatal(err)
-		}
+		response, err := client.Do(request)
+		iserror(err, job)
 
 		if response.StatusCode != 200 {
-			fmt.Println("[query] Bad statuscode from crt.sh, check connection!")
+			fmt.Printf("[%s] ERROR: Got statuscode '%d' from crt.sh, exiting.\n", job, response.StatusCode)
 			os.Exit(1)
 		}
 
 		// convert to a slice of structs
 		err = json.NewDecoder(response.Body).Decode(&jsondata)
-		if err != nil {
-			log.Fatal(err)
-		}
+		iserror(err, job)
 
 		// to print every domain once
 		var printed []string
@@ -72,7 +85,7 @@ func worker(wg *sync.WaitGroup, jobs <-chan string, printwildcards bool) {
 				// if wildcard cert is found print only if flag --wildcards is supplied
 				if strings.HasPrefix(cert.NameValue, "*.") {
 					if printwildcards {
-						fmt.Printf("\033[33m%s\033[0m\n", cert.NameValue)
+						fmt.Println(cert.NameValue)
 						printed = append(printed, cert.NameValue)
 					} else {
 						printed = append(printed, cert.NameValue)
@@ -81,14 +94,12 @@ func worker(wg *sync.WaitGroup, jobs <-chan string, printwildcards bool) {
 					fmt.Println(cert.NameValue)
 					printed = append(printed, cert.NameValue)
 				}
-
 			}
-
 		}
 
 		// sleep so that we don't dos crt.sh
 		// ADJUST THIS VALUE AT YOUR OWN RISK OF GETTING WAF'D
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 1000)
 	}
 }
 
@@ -140,4 +151,5 @@ func main() {
 
 	close(chanJobs)
 	wg.Wait()
+	os.Exit(0)
 }
