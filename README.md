@@ -8,12 +8,15 @@ go install gitlab.com/lu-ka/gocrtsh@latest
 
 ## Build from source
 ```bash
+# manual
 git clone https://gitlab.com/lu-ka/gocrtsh
 cd gocrtsh
 go build
 
-# or via makefile
-make linux || make windows || make all
+# via makefile
+git clone https://gitlab.com/lu-ka/gocrtsh
+cd gocrtsh
+make
 ```
 
 ## Usage
