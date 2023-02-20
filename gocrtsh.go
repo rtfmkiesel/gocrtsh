@@ -1,7 +1,5 @@
 package main
 
-// https://gitlab.com/lu-ka/gocrtsh
-
 import (
 	"bufio"
 	"encoding/json"
@@ -15,7 +13,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"gitlab.com/lu-ka/gocrtsh/randomUserAgent"
+	"gitlab.com/rtfmkiesel/gocrtsh/randomUserAgent"
 )
 
 // slices of the results

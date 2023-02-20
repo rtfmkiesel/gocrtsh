@@ -3,18 +3,18 @@ A quick & minimal implementation of [crt.sh](https://crt.sh)'s JSON API in GO.
 
 ## Installation
 ```bash
-go install gitlab.com/lu-ka/gocrtsh@latest
+go install gitlab.com/rtfmkiesel/gocrtsh@latest
 ```
 
 ## Build from source
 ```bash
 # manual
-git clone https://gitlab.com/lu-ka/gocrtsh
+git clone https://gitlab.com/rtfmkiesel/gocrtsh
 cd gocrtsh
 go build
 
 # via makefile
-git clone https://gitlab.com/lu-ka/gocrtsh
+git clone https://gitlab.com/rtfmkiesel/gocrtsh
 cd gocrtsh
 make
 ```
@@ -30,7 +30,7 @@ cat domains.txt | gocrtsh (--wildcards)
 This is not the first nor only (GO) client for [crt.sh](https://crt.sh). I just wanted to do my own minimalistic implementation with learning by doing in mind. 
 
 ## License
-This code is released under the [MIT License](https://gitlab.com/lu-ka/gocrtsh/blob/main/LICENSE).
+This code is released under the [MIT License](https://gitlab.com/rtfmkiesel/gocrtsh/blob/main/LICENSE).
 
 ## Legal
 This code is provided for educational use only. If you engage in any illegal activity the author does not take any responsibility for it. By using this code, you agree with these terms.
