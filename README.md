@@ -1,5 +1,13 @@
 # gocrtsh
-A quick & minimal implementation of [crt.sh](https://crt.sh)'s JSON API in GO. 
+A quick & minimal implementation of [crt.sh](https://crt.sh)'s JSON API in Golang. 
+
+## Usage
+```
+cat domains.txt | gocrtsh (-w) (-r 3)
+
+-w = Print found wildcard (*.domain.tld) certificates (default: false)
+-r = How many runners (threads) to spawn (default: 1)
+```
 
 ## Installation
 ```bash
@@ -11,26 +19,16 @@ go install gitlab.com/rtfmkiesel/gocrtsh@latest
 # manual
 git clone https://gitlab.com/rtfmkiesel/gocrtsh
 cd gocrtsh
-go build
+# to build binary in the current directory
+go build -ldflags="-s -w" "cli/gocrtsh"
+# to install binary into GOPATH/bin
+go install "cli/gocrtsh"
 
 # via makefile
 git clone https://gitlab.com/rtfmkiesel/gocrtsh
 cd gocrtsh
+# current OS
 make
+# cross compile
+make all
 ```
-
-## Usage
-```
-cat domains.txt | gocrtsh (--wildcards)
-
---wildcards = print found wildcard (*.domain.tld) certificates (default: false)
-```
-
-## copycat
-This is not the first nor only (GO) client for [crt.sh](https://crt.sh). I just wanted to do my own minimalistic implementation with learning by doing in mind. 
-
-## License
-This code is released under the [MIT License](https://gitlab.com/rtfmkiesel/gocrtsh/blob/main/LICENSE).
-
-## Legal
-This code is provided for educational use only. If you engage in any illegal activity the author does not take any responsibility for it. By using this code, you agree with these terms.
