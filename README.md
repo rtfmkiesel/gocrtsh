@@ -16,19 +16,10 @@ go install gitlab.com/rtfmkiesel/gocrtsh@latest
 
 ## Build from source
 ```bash
-# manual
 git clone https://gitlab.com/rtfmkiesel/gocrtsh
 cd gocrtsh
 # to build binary in the current directory
-go build -ldflags="-s -w" "cli/gocrtsh"
-# to install binary into GOPATH/bin
-go install "cli/gocrtsh"
-
-# via makefile
-git clone https://gitlab.com/rtfmkiesel/gocrtsh
-cd gocrtsh
-# current OS
-make
-# cross compile
-make all
+go build -ldflags="-s -w" .
+# to build & install binary into GOPATH/bin
+go install .
 ```
