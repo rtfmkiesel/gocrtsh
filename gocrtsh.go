@@ -163,6 +163,15 @@ func main() {
 	var flagRunner int
 	flag.BoolVar(&flagWildCards, "w", false, "Print wildcard certificates")
 	flag.IntVar(&flagRunner, "r", 1, "Number of runners")
+	flag.Usage = func() {
+		fmt.Printf(`Usage: cat domains.txt | gocrtsh [OPTIONS]
+
+Options:
+    -w Print found wildcard certificates (default: false)
+    -r How many runners/threads to spawn (default: 1)
+    -h Prints this text
+			`)
+	}
 	flag.Parse()
 
 	// check that stdin != empty

@@ -3,10 +3,12 @@ A quick & minimal implementation of [crt.sh](https://crt.sh)'s JSON API in Golan
 
 ## Usage
 ```
-cat domains.txt | gocrtsh (-w) (-r 3)
+cat domains.txt | gocrtsh [OPTIONS]
 
--w = Print found wildcard (*.domain.tld) certificates (default: false)
--r = How many runners (threads) to spawn (default: 1)
+Options:
+    -w Print found wildcard certificates (default: false)
+    -r How many runners/threads to spawn (default: 1)
+    -h Prints this text
 ```
 
 ## Installation
