@@ -13,12 +13,12 @@ Options:
 
 ## Installation
 ```bash
-go install gitlab.com/rtfmkiesel/gocrtsh@latest
+go install github.com/rtfmkiesel/gocrtsh@latest
 ```
 
 ## Build from source
 ```bash
-git clone https://gitlab.com/rtfmkiesel/gocrtsh
+git clone https://github.com/rtfmkiesel/gocrtsh
 cd gocrtsh
 # to build binary in the current directory
 go build -ldflags="-s -w" .

@@ -1,4 +1,4 @@
-module gitlab.com/rtfmkiesel/gocrtsh
+module github.com/rtfmkiesel/gocrtsh
 
 go 1.20
 
