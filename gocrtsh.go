@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -16,12 +15,34 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-// struct for the JSON response of crtsh
+var (
+	// command line arguments
+	flagWildCards bool
+	flagSilent    bool
+	flagRunner    int
+)
+
+// Struct for the JSON response of crtsh
 type jsonResponse struct {
 	NameValue string `json:"name_value"`
 }
 
-// returns true if []string slice contains string
+// catch() will handle errors
+func catch(err error) {
+	if !flagSilent {
+		fmt.Printf("ERROR: %s\n", err)
+	}
+}
+
+// catchCrit() will handle critical errors
+func catchCrit(err error) {
+	if !flagSilent {
+		fmt.Printf("CRITICAL: %s\n", err)
+	}
+	os.Exit(1)
+}
+
+// contains() will return true if a []string contains a specified string
 func contains(list []string, query string) bool {
 	for _, item := range list {
 		if item == query {
@@ -32,201 +53,200 @@ func contains(list []string, query string) bool {
 	return false
 }
 
-// returns a random desktop user-agent
+// randomUserAgent() will return a random desktop user-agent
 func randomUserAgent() string {
 	desktopAll := []string{
-		// chrome
+		// Chrome Windows
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
 		"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
 		"Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-		// firefox
+		// Firefox Windows
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:107.0) Gecko/20100101 Firefox/107.0",
-		// edge
+		// Edge Windows
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/107.0.1418.62",
-		// opera
+		// Opera Windows
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 OPR/93.0.4585.21",
 		"Mozilla/5.0 (Windows NT 10.0; WOW64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 OPR/93.0.4585.21",
-		// chrome
+		// Chrome Mac
 		"Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-		// firefox
+		// Firefox Mac
 		"Mozilla/5.0 (Macintosh; Intel Mac OS X 13.0; rv:107.0) Gecko/20100101 Firefox/107.0",
-		// safari
+		// Safari Mac
 		"Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15",
-		// edge
+		// Edge Mac
 		"Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/107.0.1418.62",
-		// opera
+		// Opera Mac
 		"Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 OPR/93.0.4585.21",
-		// chrome
+		// Chrome Linux
 		"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-		// firefox
+		// Firefox Linux
 		"Mozilla/5.0 (X11; Linux i686; rv:107.0) Gecko/20100101 Firefox/107.0",
 		"Mozilla/5.0 (X11; Linux x86_64; rv:107.0) Gecko/20100101 Firefox/107.0",
 		"Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:107.0) Gecko/20100101 Firefox/107.0",
 		"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:107.0) Gecko/20100101 Firefox/107.0",
 		"Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:107.0) Gecko/20100101 Firefox/107.0",
-		// opera
+		// Opera Linux
 		"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 OPR/93.0.4585.21",
 	}
 
-	// init rand
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// get an random int <= len(slice)
+	// Get an random int <= len(slice)
 	i := r.Intn((len(desktopAll) - 0) + 0)
-	// return a string
+
 	return desktopAll[i]
 }
 
-// go function to make a GET request to crt.sh's JSON API
+// crtshRunner() is a go func to make requests to crt.sh's JSON API
 func crtshRunner(wg *sync.WaitGroup, chanJobs <-chan string, chanResults chan<- string) {
 	defer wg.Done()
 
-	// setup http client
+	// Setup HTTP client
 	client := &http.Client{}
 
-	// for each job
+	// For each job
 	for job := range chanJobs {
-		// build request
+		// Build request
 		request, err := http.NewRequest("GET", "https://crt.sh/?output=json&CN="+job, nil)
 		if err != nil {
-			log.Fatal(err)
+			catch(err)
+			continue
 		}
 
-		// set a random User Agent
+		// Set a random user-agent
 		request.Header.Set("User-Agent", randomUserAgent())
 
-		// make the request
+		// Make the request
 		response, err := client.Do(request)
 		if err != nil {
-			log.Fatal(err)
+			catch(err)
+			continue
 		}
 
-		// break if the status code was not 200
+		// Break if the status code was not 200
 		if response.StatusCode != 200 {
-			log.Fatalf(
-				"Got statuscode '%d' from crt.sh while requesting %s\n",
+			catch(fmt.Errorf(
+				"got statuscode '%d' from crt.sh while requesting %s",
 				response.StatusCode,
 				job,
-			)
+			))
+			continue
 		}
 
-		// decode json response
+		// Decode JSON response
 		var results []*jsonResponse
 		err = json.NewDecoder(response.Body).Decode(&results)
 		if err != nil {
-			log.Fatal(err)
+			catch(err)
+			continue
 		}
 
-		// add the found certs to the result channel
+		// Add the found certs to the result channel
 		for _, cert := range results {
 			chanResults <- cert.NameValue
 		}
 
-		// sleep so that we don't DOS crt.sh
-		time.Sleep(time.Millisecond * 1000)
+		// Sleep so that we don't DOS crt.sh
+		time.Sleep(time.Second * 3)
 	}
 }
 
-// go function for printing the results
+// resultsRunner() is a go function for handling results
 func resultsRunner(wg *sync.WaitGroup, chanResults <-chan string, printWildcards bool) {
 	defer wg.Done()
 
-	// setup a slice of already printed cert to only print uniq certs
+	// Setup a slice of already printed cert
+	// so certs will only get printed once
 	var printed []string
 
-	// for each result
+	// For each result
 	for result := range chanResults {
-		// cert has not been printed yet
-		if !contains(printed, result) {
-			// if the cert starts with a * it is a wildcard cert
-			if strings.HasPrefix(result, "*.") {
-				// if the user want to print wildcard certs
-				if printWildcards {
-					// print & append to printed
-					fmt.Println(result)
-					printed = append(printed, result)
-				} else {
-					// do not print & append
-					printed = append(printed, result)
-				}
-			} else {
-				// print & append to printed
-				fmt.Println(result)
-				printed = append(printed, result)
+		// Cert has been printed
+		if contains(printed, result) {
+			continue
+		}
+
+		printed = append(printed, result)
+
+		// If the cert starts with a * it's a wildcard cert
+		if strings.HasPrefix(result, "*.") {
+			if !printWildcards {
+				continue
 			}
 		}
+
+		fmt.Println(result)
 	}
 }
 
 func main() {
-	// setup & parse args
-	var flagWildCards bool
-	var flagRunner int
-	flag.BoolVar(&flagWildCards, "w", false, "Print wildcard certificates")
-	flag.IntVar(&flagRunner, "r", 1, "Number of runners")
+	// Parse args
+	flag.BoolVar(&flagWildCards, "w", false, "")
+	flag.BoolVar(&flagSilent, "s", false, "")
+	flag.IntVar(&flagRunner, "r", 1, "")
 	flag.Usage = func() {
 		fmt.Printf(`Usage: cat domains.txt | gocrtsh [OPTIONS]
 
 Options:
     -w Print found wildcard certificates (default: false)
     -r How many runners/threads to spawn (default: 1)
+    -s Do not print errors               (default: false)
     -h Prints this text
 			`)
 	}
 	flag.Parse()
 
-	// check that stdin != empty
+	// Check that stdin != empty
 	stdinstat, err := os.Stdin.Stat()
 	if err != nil {
-		log.Fatal(err)
+		catchCrit(err)
 	}
 	if stdinstat.Mode()&os.ModeNamedPipe == 0 {
-		log.Fatal("stdin was empty")
+		catchCrit(fmt.Errorf("stdin was empty"))
 	}
 
-	// setup waitgroup for the jobs
+	// Setup waitgroup for the jobs
 	wgCrtsh := new(sync.WaitGroup)
-	// setup channel for the jobs
+	// Setup channel for the jobs
 	chanJobs := make(chan string)
 
-	// setup waitgroup for the output runner
+	// Setup waitgroup for the output runner
 	wgResults := new(sync.WaitGroup)
-	// setup channel for the output runner
+	// Setup channel for the output runner
 	chanResults := make(chan string)
 
-	// start the crtsh runners
+	// Start the crtsh runners
 	for i := 0; i <= flagRunner; i++ {
 		go crtshRunner(wgCrtsh, chanJobs, chanResults)
 		wgCrtsh.Add(1)
 	}
 
-	// start the output runner
+	// Start the output runner
 	go resultsRunner(wgResults, chanResults, flagWildCards)
 	wgResults.Add(1)
 
-	// setup scanner for stdin
+	// Setup scanner for stdin
 	stdin := bufio.NewScanner(os.Stdin)
 	for stdin.Scan() {
-		// read from the scanner
+		// Read from the scanner
 		domain := stdin.Text()
-		// check if supplied domain is a valid domain
+		// Check if supplied domain is a valid domain
 		if !govalidator.IsDNSName(domain) {
 			continue
 		} else {
-			// add a job to the channel
+			// Add a job to the channel
 			chanJobs <- domain
 		}
 	}
 
-	// if there was an error with STDIN
+	// If there was an error with STDIN
 	if err := stdin.Err(); err != nil {
-		log.Fatal(err)
+		catchCrit(err)
 	}
 
-	// closing of the channel will start the crtsh runners
+	// Closing the channel will start the crtsh runners
 	close(chanJobs)
 	wgCrtsh.Wait()
 
-	// closing of the channel will start the output runner
 	close(chanResults)
 	wgResults.Wait()
 }

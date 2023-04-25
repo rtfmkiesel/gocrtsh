@@ -8,6 +8,7 @@ cat domains.txt | gocrtsh [OPTIONS]
 Options:
     -w Print found wildcard certificates (default: false)
     -r How many runners/threads to spawn (default: 1)
+    -s Do not print errors               (default: false)
     -h Prints this text
 ```
 
