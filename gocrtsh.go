@@ -13,13 +13,17 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/projectdiscovery/retryabledns"
 )
 
 var (
 	// command line arguments
 	flagWildCards bool
+	flagOnline    bool
 	flagSilent    bool
 	flagRunner    int
+	// DNS resolvers for the lookup with '-o'
+	dnsServers = []string{"9.9.9.9:53", "1.1.1.1:53", "8.8.8.8:53"}
 )
 
 // Struct for the JSON response of crtsh
@@ -158,6 +162,12 @@ func resultsRunner(wg *sync.WaitGroup, chanResults <-chan string, printWildcards
 	// so certs will only get printed once
 	var printed []string
 
+	// Init DNS client
+	dnsClient, err := retryabledns.New(dnsServers, 3)
+	if err != nil {
+		catchCrit(err)
+	}
+
 	// For each result
 	for result := range chanResults {
 		// Cert has been printed
@@ -174,24 +184,56 @@ func resultsRunner(wg *sync.WaitGroup, chanResults <-chan string, printWildcards
 			}
 		}
 
-		fmt.Println(result)
+		// Make a DNS query if specified
+		if flagOnline {
+			addrs, err := dnsClient.Resolve(result)
+			if err != nil {
+				catch(err)
+				continue
+			}
+
+			// Get all the relevant records from addrs
+			// Pretty ugly I know but addrs.AllRecords contains stuff we don't want
+			var records []string
+			records = append(records, addrs.A...)
+			records = append(records, addrs.AAAA...)
+			records = append(records, addrs.CNAME...)
+			records = append(records, addrs.MX...)
+			records = append(records, addrs.SRV...)
+			records = append(records, addrs.TXT...)
+
+			// Check if a addr was resolved
+			for _, addr := range records {
+				if addr != "" {
+					// Print on the first record returned by the DNS query
+					fmt.Println(result)
+					break
+				}
+			}
+
+		} else {
+			// Just print
+			fmt.Println(result)
+		}
 	}
 }
 
 func main() {
 	// Parse args
 	flag.BoolVar(&flagWildCards, "w", false, "")
+	flag.BoolVar(&flagOnline, "o", false, "")
 	flag.BoolVar(&flagSilent, "s", false, "")
 	flag.IntVar(&flagRunner, "r", 1, "")
 	flag.Usage = func() {
 		fmt.Printf(`Usage: cat domains.txt | gocrtsh [OPTIONS]
 
 Options:
-    -w Print found wildcard certificates (default: false)
-    -r How many runners/threads to spawn (default: 1)
-    -s Do not print errors               (default: false)
+    -w Print found wildcard certificates      (default: false)
+    -o Only print online (resolvable) domains (default: false)
+    -r How many runners/threads to spawn      (default: 1)
+    -s Do not print errors                    (default: false)
     -h Prints this text
-			`)
+		`)
 	}
 	flag.Parse()
 

@@ -6,9 +6,10 @@ A quick & minimal implementation of [crt.sh](https://crt.sh)'s JSON API in Golan
 cat domains.txt | gocrtsh [OPTIONS]
 
 Options:
-    -w Print found wildcard certificates (default: false)
-    -r How many runners/threads to spawn (default: 1)
-    -s Do not print errors               (default: false)
+    -w Print found wildcard certificates      (default: false)
+    -o Only print online (resolvable) domains (default: false)
+    -r How many runners/threads to spawn      (default: 1)
+    -s Do not print errors                    (default: false)
     -h Prints this text
 ```
 
