@@ -179,7 +179,10 @@ func outputHandler(wg *sync.WaitGroup, chanResults <-chan string, printWildcards
 
 		// If the cert starts with a * it's a wildcard cert
 		if strings.HasPrefix(result, "*.") {
-			if !printWildcards {
+			if printWildcards {
+				fmt.Println(result)
+				continue
+			} else {
 				continue
 			}
 		}
