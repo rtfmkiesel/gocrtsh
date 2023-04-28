@@ -150,7 +150,7 @@ func crtshRunner(wg *sync.WaitGroup, chanJobs <-chan string, chanResults chan<- 
 		}
 
 		// Sleep so that we don't DOS crt.sh
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 1)
 	}
 }
 
