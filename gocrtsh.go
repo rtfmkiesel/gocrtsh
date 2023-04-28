@@ -19,9 +19,9 @@ import (
 var (
 	// command line arguments
 	flagWildCards bool
-	flagOnline    bool
+	flagResolve   bool
 	flagSilent    bool
-	flagRunner    int
+	flagThreads   int
 	// DNS resolvers for the lookup with '-o'
 	dnsServers = []string{"9.9.9.9:53", "1.1.1.1:53", "8.8.8.8:53"}
 )
@@ -100,8 +100,8 @@ func randomUserAgent() string {
 	return desktopAll[i]
 }
 
-// crtshRunner() is a go func to make requests to crt.sh's JSON API
-func crtshRunner(wg *sync.WaitGroup, chanJobs <-chan string, chanResults chan<- string) {
+// crtshHandler() is a go func to make requests to crt.sh's JSON API
+func crtshHandler(wg *sync.WaitGroup, chanJobs <-chan string, chanResults chan<- string) {
 	defer wg.Done()
 
 	// Setup HTTP client
@@ -154,8 +154,8 @@ func crtshRunner(wg *sync.WaitGroup, chanJobs <-chan string, chanResults chan<- 
 	}
 }
 
-// resultsRunner() is a go function for handling results
-func resultsRunner(wg *sync.WaitGroup, chanResults <-chan string, printWildcards bool) {
+// outputHandler() is a go function for handling results
+func outputHandler(wg *sync.WaitGroup, chanResults <-chan string, printWildcards bool) {
 	defer wg.Done()
 
 	// Setup a slice of already printed cert
@@ -185,7 +185,7 @@ func resultsRunner(wg *sync.WaitGroup, chanResults <-chan string, printWildcards
 		}
 
 		// Make a DNS query if specified
-		if flagOnline {
+		if flagResolve {
 			addrs, err := dnsClient.Resolve(result)
 			if err != nil {
 				catch(err)
@@ -220,20 +220,21 @@ func resultsRunner(wg *sync.WaitGroup, chanResults <-chan string, printWildcards
 
 func main() {
 	// Parse args
+	flag.BoolVar(&flagResolve, "r", false, "")
 	flag.BoolVar(&flagWildCards, "w", false, "")
-	flag.BoolVar(&flagOnline, "o", false, "")
+	flag.IntVar(&flagThreads, "t", 1, "")
 	flag.BoolVar(&flagSilent, "s", false, "")
-	flag.IntVar(&flagRunner, "r", 1, "")
 	flag.Usage = func() {
 		fmt.Printf(`Usage: cat domains.txt | gocrtsh [OPTIONS]
 
 Options:
+    -r Print only resolvable domains          (default: false)
     -w Print found wildcard certificates      (default: false)
-    -o Only print online (resolvable) domains (default: false)
-    -r How many runners/threads to spawn      (default: 1)
+    -t How many threads to spawn              (default: 1)
     -s Do not print errors                    (default: false)
     -h Prints this text
-		`)
+
+`)
 	}
 	flag.Parse()
 
@@ -251,19 +252,19 @@ Options:
 	// Setup channel for the jobs
 	chanJobs := make(chan string)
 
-	// Setup waitgroup for the output runner
+	// Setup waitgroup for the output handler
 	wgResults := new(sync.WaitGroup)
-	// Setup channel for the output runner
+	// Setup channel for the output handler
 	chanResults := make(chan string)
 
-	// Start the crtsh runners
-	for i := 0; i <= flagRunner; i++ {
-		go crtshRunner(wgCrtsh, chanJobs, chanResults)
+	// Start the crtsh handlers
+	for i := 0; i <= flagThreads; i++ {
+		go crtshHandler(wgCrtsh, chanJobs, chanResults)
 		wgCrtsh.Add(1)
 	}
 
-	// Start the output runner
-	go resultsRunner(wgResults, chanResults, flagWildCards)
+	// Start the output handler
+	go outputHandler(wgResults, chanResults, flagWildCards)
 	wgResults.Add(1)
 
 	// Setup scanner for stdin
@@ -285,7 +286,7 @@ Options:
 		catchCrit(err)
 	}
 
-	// Closing the channel will start the crtsh runners
+	// Closing the channel will start the crtsh handlers
 	close(chanJobs)
 	wgCrtsh.Wait()
 
