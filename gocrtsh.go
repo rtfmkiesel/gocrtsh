@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/projectdiscovery/retryabledns"
 )
 
 var (
@@ -22,8 +22,6 @@ var (
 	flagResolve   bool
 	flagSilent    bool
 	flagThreads   int
-	// DNS resolvers for the lookup with '-o'
-	dnsServers = []string{"9.9.9.9:53", "1.1.1.1:53", "8.8.8.8:53"}
 )
 
 // Struct for the JSON response of crtsh
@@ -104,11 +102,13 @@ func randomUserAgent() string {
 func crtshHandler(wg *sync.WaitGroup, chanJobs <-chan string, chanResults chan<- string) {
 	defer wg.Done()
 
-	// Setup HTTP client
-	client := &http.Client{}
-
 	// For each job
 	for job := range chanJobs {
+		// Setup HTTP client
+		client := &http.Client{
+			Timeout: 10 * time.Second,
+		}
+
 		// Build request
 		request, err := http.NewRequest("GET", "https://crt.sh/?output=json&CN="+job, nil)
 		if err != nil {
@@ -162,12 +162,6 @@ func outputHandler(wg *sync.WaitGroup, chanResults <-chan string, printWildcards
 	// so certs will only get printed once
 	var printed []string
 
-	// Init DNS client
-	dnsClient, err := retryabledns.New(dnsServers, 3)
-	if err != nil {
-		catchCrit(err)
-	}
-
 	// For each result
 	for result := range chanResults {
 		// Cert has been printed
@@ -189,25 +183,18 @@ func outputHandler(wg *sync.WaitGroup, chanResults <-chan string, printWildcards
 
 		// Make a DNS query if specified
 		if flagResolve {
-			addrs, err := dnsClient.Resolve(result)
+			ips, err := net.LookupIP(result)
 			if err != nil {
-				catch(err)
-				continue
+				if strings.Contains(fmt.Sprintf("%s", err), "no such host") {
+					continue
+				} else {
+					catch(err)
+					continue
+				}
 			}
-
-			// Get all the relevant records from addrs
-			// Pretty ugly I know but addrs.AllRecords contains stuff we don't want
-			var records []string
-			records = append(records, addrs.A...)
-			records = append(records, addrs.AAAA...)
-			records = append(records, addrs.CNAME...)
-			records = append(records, addrs.MX...)
-			records = append(records, addrs.SRV...)
-			records = append(records, addrs.TXT...)
-
 			// Check if a addr was resolved
-			for _, addr := range records {
-				if addr != "" {
+			for _, addr := range ips {
+				if addr != nil {
 					// Print on the first record returned by the DNS query
 					fmt.Println(result)
 					break
